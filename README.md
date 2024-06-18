@@ -1,3 +1,10 @@
+# Goose Quotes
+
+Harnessing the power of AI to imagine the world in a goosier way.
+
+
+## Running and Deploying
+
 ```
 npm install
 npm run dev
