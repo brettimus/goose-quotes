@@ -13,12 +13,20 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
+/**
+ * Home page
+ * 
+ * If `shouldHonk` query parameter is defined, then print "Honk honk!"
+ */
 app.get('/', (c) => {
-  return c.text('Hello GooseAI!')
+  const { shouldHonk } = c.req.query();
+  const honk = typeof shouldHonk !== "undefined" ? 'Honk honk!' : '';
+  return c.text(`Hello Goose Quotes! ${honk}`.trim())
 })
 
 /**
  * Search Geese by name
+ * 
  * If `name` query parameter is not defined, then return all geese
  */
 app.get('/api/geese', async (c) => {
@@ -39,7 +47,7 @@ app.get('/api/geese', async (c) => {
 })
 
 /**
- * Create a Goose and return the goose
+ * Create a Goose and return the Goose
  */
 app.post('/api/geese', async (c) => {
   const sql = neon(c.env.DATABASE_URL)
@@ -53,7 +61,7 @@ app.post('/api/geese', async (c) => {
 })
 
 /**
- * Get a goose by id
+ * Get a Goose by id
  */
 app.get('/api/geese/:id', async (c) => {
   const sql = neon(c.env.DATABASE_URL)
@@ -70,6 +78,9 @@ app.get('/api/geese/:id', async (c) => {
   return c.json(goose);
 });
 
+/**
+ * Generate Goose Quotes
+ */
 app.post('/api/geese/:id/generate', async c => {
   const sql = neon(c.env.DATABASE_URL)
   const db = drizzle(sql);
@@ -93,14 +104,14 @@ app.post('/api/geese/:id/generate', async c => {
     messages: [
       {
         role: "system",
-        content: cleanPrompt(`
+        content: trimPrompt(`
             You are a goose. You are a very smart goose. You are part goose, part AI. You are a GooseAI.
             You are also influenced heavily by the work of ${gooseName}.
         `),
       },
       {
         role: "user",
-        content: cleanPrompt(`
+        content: trimPrompt(`
             Reimagine five famous quotes by ${gooseName}, except with significant goose influence.
         `),
       },
@@ -108,13 +119,14 @@ app.post('/api/geese/:id/generate', async c => {
     temperature: 0.7,
     max_tokens: 2048,
   });
-  return c.json({ message: "NOT YET IMPLEMENTED" })
+
+  const quotes = response.choices[0].message.content;
+  return c.json({ quotes })
 })
 
 export default app
 
-
-function cleanPrompt(prompt: string) {
+function trimPrompt(prompt: string) {
   return prompt
     .trim()
     .split("\n")
