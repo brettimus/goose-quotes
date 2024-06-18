@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { users } from "./src/db/schema";
+import { geese } from "./src/db/schema";
 import { config } from "dotenv";
 
 config({ path: '.dev.vars' });
@@ -10,15 +10,15 @@ const sql = neon(process.env.DATABASE_URL!);
 const db = drizzle(sql);
 
 async function seed() {
-  await db.insert(users).values([
+  await db.insert(geese).values([
     {
-      name: "Laszlo Cravensworth",
+      name: "Ryan Gosling",
     },
     {
-      name: "Nadja Antipaxos",
+      name: "Goose from Top Gun",
     },
     {
-      name: "Colin Robinson",
+      name: "Samuel L. Jackson",
     },
   ]);
 }
