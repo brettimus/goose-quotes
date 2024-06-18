@@ -1,11 +1,14 @@
 import { Hono } from 'hono';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { geese } from './db/schema';
 import { asc, eq, ilike } from 'drizzle-orm';
+import OpenAI from "openai";
+
+import { geese } from './db/schema';
 
 type Bindings = {
   DATABASE_URL: string;
+  OPENAI_API_KEY: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -58,7 +61,7 @@ app.get('/api/geese/:id', async (c) => {
 
   const id = c.req.param('id');
 
-  const goose = await db.select().from(geese).where(eq(geese.id, +id));
+  const goose = (await db.select().from(geese).where(eq(geese.id, +id)))?.[0];
 
   if (!goose) {
     return c.json({ message: 'Goose not found' }, 404);
@@ -68,8 +71,53 @@ app.get('/api/geese/:id', async (c) => {
 });
 
 app.post('/api/geese/:id/generate', async c => {
-  // TODO
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const id = c.req.param('id');
+
+  const goose = (await db.select().from(geese).where(eq(geese.id, +id)))?.[0];
+
+  if (!goose) {
+    return c.json({ message: 'Goose not found' }, 404);
+  }
+
+  const { name: gooseName } = goose;
+
+  const openaiClient = new OpenAI({
+    apiKey: c.env.OPENAI_API_KEY,
+  });
+
+  const response = await openaiClient.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content: cleanPrompt(`
+            You are a goose. You are a very smart goose. You are part goose, part AI. You are a GooseAI.
+            You are also influenced heavily by the work of ${gooseName}.
+        `),
+      },
+      {
+        role: "user",
+        content: cleanPrompt(`
+            Reimagine five famous quotes by ${gooseName}, except with significant goose influence.
+        `),
+      },
+    ],
+    temperature: 0.7,
+    max_tokens: 2048,
+  });
   return c.json({ message: "NOT YET IMPLEMENTED" })
 })
 
 export default app
+
+
+function cleanPrompt(prompt: string) {
+  return prompt
+    .trim()
+    .split("\n")
+    .map((l) => l.trim())
+    .join("\n");
+}
