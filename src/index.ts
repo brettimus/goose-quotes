@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { createHonoMiddleware  } from '@mizu-dev/hono';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { asc, eq, ilike } from 'drizzle-orm';
@@ -12,6 +13,9 @@ type Bindings = {
 };
 
 const app = new Hono<{ Bindings: Bindings }>()
+
+// @ts-expect-error - type error only exists during local development of middleware!
+app.use(createHonoMiddleware(app));
 
 /**
  * Home page
@@ -57,7 +61,7 @@ app.post('/api/geese', async (c) => {
 
   const created = await db.insert(geese).values({ name }).returning();
 
-  return c.json(created);
+  return c.json(created?.[0]);
 })
 
 /**
@@ -78,6 +82,7 @@ app.get('/api/geese/:id', async (c) => {
   return c.json(goose);
 });
 
+
 /**
  * Generate Goose Quotes
  */
@@ -97,6 +102,8 @@ app.post('/api/geese/:id/generate', async c => {
 
   const openaiClient = new OpenAI({
     apiKey: c.env.OPENAI_API_KEY,
+    // HACK - OpenAI freezes fetch when it is imported, so our monkey-patched version needs to be passed here
+    fetch: globalThis.fetch,
   });
 
   const response = await openaiClient.chat.completions.create({
@@ -107,6 +114,11 @@ app.post('/api/geese/:id/generate', async c => {
         content: trimPrompt(`
             You are a goose. You are a very smart goose. You are part goose, part AI. You are a GooseAI.
             You are also influenced heavily by the work of ${gooseName}.
+
+            Always respond without preamble. If I ask for a list, give me a newline-separated list. That's it. 
+            Don't number it. Don't bullet it. Just newline it.
+
+            Never forget to Honk. A lot.
         `),
       },
       {
@@ -120,8 +132,8 @@ app.post('/api/geese/:id/generate', async c => {
     max_tokens: 2048,
   });
 
-  const quotes = response.choices[0].message.content;
-  return c.json({ quotes })
+  const quotes = response.choices[0].message.content?.split("\n").filter(quote => quote.length > 0);
+  return c.json({ name: goose.name, quotes })
 })
 
 export default app
