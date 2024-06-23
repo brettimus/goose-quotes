@@ -14,13 +14,15 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
+// Add middleware to power local development studio
+//
 // @ts-expect-error - type error only exists during local development of middleware!
 app.use(createHonoMiddleware(app));
 
 /**
  * Home page
  * 
- * If `shouldHonk` query parameter is defined, then print "Honk honk!"
+ * If `shouldHonk` query parameter is present, then print "Honk honk!"
  */
 app.get('/', (c) => {
   const { shouldHonk } = c.req.query();
@@ -52,14 +54,21 @@ app.get('/api/geese', async (c) => {
 
 /**
  * Create a Goose and return the Goose
+ * 
+ * Only requires a `name` parameter in the request body
  */
 app.post('/api/geese', async (c) => {
   const sql = neon(c.env.DATABASE_URL)
   const db = drizzle(sql);
 
   const { name } = await c.req.json()
+  const description = `A person named ${name} who talks like a Goose`
 
-  const created = await db.insert(geese).values({ name }).returning();
+  const created = await db.insert(geese).values({ name, description }).returning({
+    id: geese.id,
+    name: geese.name,
+    description: geese.description
+  });
 
   return c.json(created?.[0]);
 })
@@ -135,6 +144,26 @@ app.post('/api/geese/:id/generate', async c => {
   const quotes = response.choices[0].message.content?.split("\n").filter(quote => quote.length > 0);
   return c.json({ name: goose.name, quotes })
 })
+
+/**
+ * Update a Goose by id
+ */
+app.patch('/api/geese/:id', async (c) => {
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const id = c.req.param('id');
+  const { name } = await c.req.json()
+
+  const goose = (await db.update(geese).set({ name }).where(eq(geese.id, +id)).returning())?.[0];
+
+  if (!goose) {
+    return c.json({ message: 'Goose not found' }, 404);
+  }
+
+  return c.json(goose);
+});
+
 
 export default app
 

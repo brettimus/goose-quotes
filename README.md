@@ -2,6 +2,19 @@
 
 Harnessing the power of AI to imagine the world in a goosier way.
 
+## Installing Middleware
+
+If developing against mizu locally, use:
+
+```json
+    "@mizu-dev/hono": "file:../fpx/client-library",
+```
+
+Otherwise, use:
+
+```sh
+npm install @mizu-dev/hono@beta
+```
 
 ## Running and Deploying
 

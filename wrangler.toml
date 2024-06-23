@@ -1,6 +1,9 @@
 name = "goose-ai"
 compatibility_date = "2023-12-01"
 
+[dev]
+# port = 1234
+
 # [vars]
 # MY_VAR = "my-variable"
 
