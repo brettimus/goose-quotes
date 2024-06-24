@@ -16,7 +16,6 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 // Add middleware to power local development studio
 //
-// @ts-expect-error - type error only exists during local development of middleware!
 app.use(createHonoMiddleware(app));
 
 /**
@@ -164,6 +163,17 @@ app.patch('/api/geese/:id', async (c) => {
   return c.json(goose);
 });
 
+/**
+ * Route for testing a POST of a non-object body
+ */
+app.post('/api/geese/echo', async (c) => {
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const body = await c.req.json();
+
+  return c.html(`<div>${body}</div>`);
+});
 
 export default app
 
