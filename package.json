@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@libsql/client": "^0.6.2",
-    "@mizu-dev/hono": "^0.2.0-beta.1",
+    "@mizu-dev/hono": "file:../fpx/client-library",
     "@neondatabase/serverless": "^0.9.3",
     "drizzle-orm": "^0.31.2",
     "hono": "^4.4.0",

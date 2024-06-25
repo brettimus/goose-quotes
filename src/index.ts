@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { createHonoMiddleware  } from '@mizu-dev/hono';
+import { createHonoMiddleware } from '@mizu-dev/hono';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { asc, eq, ilike } from 'drizzle-orm';
@@ -16,6 +16,7 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 // Add middleware to power local development studio
 //
+// @ts-expect-error - local development
 app.use(createHonoMiddleware(app));
 
 /**
@@ -89,7 +90,6 @@ app.get('/api/geese/:id', async (c) => {
 
   return c.json(goose);
 });
-
 
 /**
  * Generate Goose Quotes
