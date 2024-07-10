@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { createHonoMiddleware } from '@mizu-dev/hono';
+import { createHonoMiddleware } from '@fiberplane/hono';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { asc, eq, ilike } from 'drizzle-orm';
@@ -163,15 +163,16 @@ app.patch('/api/geese/:id', async (c) => {
   return c.json(goose);
 });
 
+app.get("/no-db", (c) => {
+  const db = process.env.DATABASE_URL
+  return c.text("No database connection");
+})
+
 /**
  * Route for testing a POST of a non-object body
  */
-app.post('/api/geese/echo', async (c) => {
-  const sql = neon(c.env.DATABASE_URL)
-  const db = drizzle(sql);
-
+app.post('/api/geese/echo/html', async (c) => {
   const body = await c.req.json();
-
   return c.html(`<div>${body}</div>`);
 });
 
