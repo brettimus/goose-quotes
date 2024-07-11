@@ -16,7 +16,6 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 // Add middleware to power local development studio
 //
-// @ts-expect-error - local development
 app.use(createHonoMiddleware(app));
 
 /**
@@ -108,6 +107,8 @@ app.post('/api/geese/:id/generate', async c => {
 
   const { name: gooseName } = goose;
 
+  console.debug("Generating quotes for ", gooseName);
+
   const openaiClient = new OpenAI({
     apiKey: c.env.OPENAI_API_KEY,
     // HACK - OpenAI freezes fetch when it is imported, so our monkey-patched version needs to be passed here
@@ -163,18 +164,18 @@ app.patch('/api/geese/:id', async (c) => {
   return c.json(goose);
 });
 
-app.get("/no-db", (c) => {
-  const db = process.env.DATABASE_URL
-  return c.text("No database connection");
-})
+// app.get("/no-db", (c) => {
+//   const db = process.env.DATABASE_URL
+//   return c.text("No database connection");
+// })
 
-/**
- * Route for testing a POST of a non-object body
- */
-app.post('/api/geese/echo/html', async (c) => {
-  const body = await c.req.json();
-  return c.html(`<div>${body}</div>`);
-});
+// /**
+//  * Route for testing a POST of a non-object body
+//  */
+// app.post('/api/geese/echo/html', async (c) => {
+//   const body = await c.req.json();
+//   return c.html(`<div>${body}</div>`);
+// });
 
 export default app
 
