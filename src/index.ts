@@ -61,13 +61,17 @@ app.post('/api/geese', async (c) => {
   const sql = neon(c.env.DATABASE_URL)
   const db = drizzle(sql);
 
-  const { name } = await c.req.json()
+  const { name, isFlockLeader, programmingLanguage, motivations, location } = await c.req.json()
   const description = `A person named ${name} who talks like a Goose`
 
-  const created = await db.insert(geese).values({ name, description }).returning({
+  const created = await db.insert(geese).values({ name, description, isFlockLeader, programmingLanguage, motivations, location }).returning({
     id: geese.id,
     name: geese.name,
-    description: geese.description
+    description: geese.description,
+    isFlockLeader: geese.isFlockLeader,
+    programmingLanguage: geese.programmingLanguage,
+    motivations: geese.motivations,
+    location: geese.location
   });
 
   return c.json(created?.[0]);
