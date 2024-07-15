@@ -164,6 +164,55 @@ app.patch('/api/geese/:id', async (c) => {
   return c.json(goose);
 });
 
+/**
+ * Api route to test getting a header
+ */
+app.get('/api/goose-headers', async (c) => {
+  const goose = c.req.header('x-goose-id');
+  return c.text(`${goose}`);
+});
+
+/**
+ * Api route to test getting a header
+ */
+app.get('/api/long-response', async (c) => {
+  const response = Array.from({ length: 200 }).fill('hi').join("\n")
+  return c.text(response);
+});
+
+/**
+ * Api route to test getting a header
+ */
+app.get('/api/long-log', async (c) => {
+  const toLog = Array.from({ length: 200 }).fill('hi').join("\n")
+  console.log(toLog);
+  return c.text("Long logs - check them out");
+});
+
+/**
+ * Api route to test getting a header
+ */
+app.get('/api/test-many-headers', async (c) => {
+  
+  Array.from({ length: 200 }).fill('honk').forEach((value, index) => {
+    c.res.headers.set(`x-goose-header-${index}`, `${value}-${index}`)
+  })
+  console.log('hiiii', 'there', { object: 'with stuff', an: { nested: 123 } })
+  return c.text("Honk honk check my headers out");
+});
+
+/**
+ * Api route to test getting a header
+ */
+app.get('/api/many-headers', async (c) => {
+  Array.from({ length: 200 }).fill('honk').forEach((value, index) => {
+    c.res.headers.set(`x-goose-header-${index}`, `${value}-${index}`)
+  })
+  console.log('hiiii', 'there', { object: 'with stuff', an: { nested: 123 } })
+  return c.text("Honk honk check my headers out");
+});
+
+
 // app.get("/no-db", (c) => {
 //   const db = process.env.DATABASE_URL
 //   return c.text("No database connection");
