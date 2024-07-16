@@ -60,17 +60,34 @@ app.post('/api/geese', async (c) => {
   const sql = neon(c.env.DATABASE_URL)
   const db = drizzle(sql);
 
-  const { name } = await c.req.json()
+  const { name, isFlockLeader, programmingLanguage, motivations, location } = await c.req.json()
   const description = `A person named ${name} who talks like a Goose`
 
-  const created = await db.insert(geese).values({ name, description }).returning({
+  const created = await db.insert(geese).values({ name, description, isFlockLeader, programmingLanguage, motivations, location }).returning({
     id: geese.id,
     name: geese.name,
-    description: geese.description
+    description: geese.description,
+    isFlockLeader: geese.isFlockLeader,
+    programmingLanguage: geese.programmingLanguage,
+    motivations: geese.motivations,
+    location: geese.location
   });
 
   return c.json(created?.[0]);
 })
+
+/**
+ * Get all Geese that are flock leaders
+ * Make sure this route is above the `/api/geese/:id` route so that the flock leader is not treated as an id
+ */
+app.get('/api/geese/flock-leaders', async (c) => {
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const flockLeaders = await db.select().from(geese).where(eq(geese.isFlockLeader, true));
+
+  return c.json(flockLeaders);
+});
 
 /**
  * Get a Goose by id
@@ -144,6 +161,23 @@ app.post('/api/geese/:id/generate', async c => {
   const quotes = response.choices[0].message.content?.split("\n").filter(quote => quote.length > 0);
   return c.json({ name: goose.name, quotes })
 })
+
+/**
+ * Honk at a Goose by id
+ */
+app.post('/api/geese/:id/honk', async (c) => {
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const id = c.req.param('id');
+  const goose = (await db.select().from(geese).where(eq(geese.id, +id)))?.[0];
+
+  if (!goose) {
+    return c.json({ message: 'Goose not found' }, 404);
+  }
+
+  return c.json({ message: `Honk honk! ${goose.name} honks back at you!` });
+});
 
 /**
  * Update a Goose by id
@@ -225,6 +259,44 @@ app.get('/api/many-headers', async (c) => {
 //   const body = await c.req.json();
 //   return c.html(`<div>${body}</div>`);
 // });
+
+
+/**
+ * Get Geese by programming language
+ */
+app.get('/api/geese/language/:language', async (c) => {
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const language = c.req.param('language');
+
+  const geeseByLanguage = await db.select().from(geese).where(ilike(geese.programmingLanguage, `%${language}%`));
+
+  return c.json(geeseByLanguage);
+});
+
+/**
+ * Update a Goose's motivations by id
+ */
+app.patch('/api/geese/:id/motivations', async (c) => {
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const id = c.req.param('id');
+  const { motivations } = await c.req.json();
+
+  const updatedGoose = (await db.update(geese)
+    .set({ motivations })
+    .where(eq(geese.id, +id))
+    .returning())?.[0];
+
+  if (!updatedGoose) {
+    return c.json({ message: 'Goose not found' }, 404);
+  }
+
+  return c.json(updatedGoose);
+});
+
 
 export default app
 
