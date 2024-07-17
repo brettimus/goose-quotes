@@ -296,6 +296,41 @@ app.post('/api/geese/:id/bio', async c => {
 
 })
 
+/**
+ * Generate Goose Image
+ */
+app.post('/api/geese/:id/image', async (c) => {
+  const sql = neon(c.env.DATABASE_URL);
+  const db = drizzle(sql);
+
+  const id = c.req.param('id');
+  const goose = (await db.select().from(geese).where(eq(geese.id, +id)))?.[0];
+
+  if (!goose) {
+    return c.json({ message: 'Goose not found' }, 404);
+  }
+
+  const { name, description, programmingLanguage, motivations, location } = goose;
+
+  const openaiClient = new OpenAI({
+    apiKey: c.env.OPENAI_API_KEY,
+    fetch: globalThis.fetch,
+  });
+
+  const imageDescription = `A goose named ${name} who is a ${programmingLanguage} programmer. ${description}. ${motivations}. Located in ${location}.`;
+
+  const response = await openaiClient.images.generate({
+    prompt: imageDescription,
+    n: 1,
+    size: "1024x1024",
+  });
+
+
+  const imageUrl = response.data[0].url;
+
+  return c.json({ imageUrl });
+});
+
 export default app
 
 function trimPrompt(prompt: string) {
