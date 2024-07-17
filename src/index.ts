@@ -165,6 +165,96 @@ app.patch('/api/geese/:id', async (c) => {
 });
 
 
+<<<<<<< Updated upstream
+=======
+
+/**
+ * Get Geese by programming language
+ */
+app.get('/api/geese/language/:language', async (c) => {
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const language = c.req.param('language');
+
+  const geeseByLanguage = await db.select().from(geese).where(ilike(geese.programmingLanguage, `%${language}%`));
+
+  return c.json(geeseByLanguage);
+});
+
+/**
+ * Update a Goose's motivations by id
+ */
+app.patch('/api/geese/:id/motivations', async (c) => {
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const id = c.req.param('id');
+  const { motivations } = await c.req.json();
+
+  const updatedGoose = (await db.update(geese)
+    .set({ motivations })
+    .where(eq(geese.id, +id))
+    .returning())?.[0];
+
+  if (!updatedGoose) {
+    return c.json({ message: 'Goose not found' }, 404);
+  }
+
+  return c.json(updatedGoose);
+});
+
+/**
+ * Generate Goose Bio
+ */
+app.post('/api/geese/:id/bio', async c => {
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const id = c.req.param('id');
+
+  const goose = (await db.select().from(geese).where(eq(geese.id, +id)))?.[0];
+
+  if (!goose) {
+    return c.json({ message: 'Goose not found' }, 404);
+  }
+
+  const { name: gooseName, description, programmingLanguage, motivations, location } = goose;
+
+  const openaiClient = new OpenAI({
+    apiKey: c.env.OPENAI_API_KEY,
+    fetch: globalThis.fetch,
+  });
+
+  const response = await openaiClient.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content: trimPrompt(`
+            You are a professional bio writer. Your task is to generate a compelling and engaging bio for a goose.
+        `),
+      },
+      {
+        role: "user",
+        content: trimPrompt(`
+            Generate a bio for a goose named ${gooseName} with the following details:
+            Description: ${description}
+            Programming Language: ${programmingLanguage}
+            Motivations: ${motivations}
+            Location: ${location}
+        `),
+      },
+    ],
+    temperature: 0.7,
+    max_tokens: 2048,
+  });
+
+  const bio = response.choices[0].message.content;
+  return c.json({ name: gooseName, bio });
+})
+
+>>>>>>> Stashed changes
 export default app
 
 function trimPrompt(prompt: string) {
