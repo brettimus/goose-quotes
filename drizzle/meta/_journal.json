@@ -15,6 +15,13 @@
       "when": 1721056733132,
       "tag": "0001_massive_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1721206056538,
+      "tag": "0002_brainy_luke_cage",
+      "breakpoints": true
     }
   ]
 }

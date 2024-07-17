@@ -260,7 +260,6 @@ app.get('/api/many-headers', async (c) => {
 //   return c.html(`<div>${body}</div>`);
 // });
 
-
 /**
  * Get Geese by programming language
  */
@@ -297,6 +296,101 @@ app.patch('/api/geese/:id/motivations', async (c) => {
   return c.json(updatedGoose);
 });
 
+
+/**
+ * Generate Goose Bio
+ */
+app.post('/api/geese/:id/bio', async c => {
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const id = c.req.param('id');
+
+  const goose = (await db.select().from(geese).where(eq(geese.id, +id)))?.[0];
+
+  if (!goose) {
+    return c.json({ message: 'Goose not found' }, 404);
+  }
+
+  const { name: gooseName, description, programmingLanguage, motivations, location } = goose;
+
+  const openaiClient = new OpenAI({
+    apiKey: c.env.OPENAI_API_KEY,
+    fetch: globalThis.fetch,
+  });
+
+  const response = await openaiClient.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content: trimPrompt(`
+            You are a professional bio writer. Your task is to generate a compelling and engaging bio for a goose.
+        `),
+      },
+      {
+        role: "user",
+        content: trimPrompt(`
+            Generate a bio for a goose named ${gooseName} with the following details:
+            Description: ${description}
+            Programming Language: ${programmingLanguage}
+            Motivations: ${motivations}
+            Location: ${location}
+        `),
+      },
+    ],
+    temperature: 0.7,
+    max_tokens: 2048,
+  });
+
+  
+
+  const bio = response.choices[0].message.content;
+
+   // Update the goose with the generated bio
+   const updatedGoose = await db.update(geese)
+   .set({ bio })
+   .where(eq(geese.id, +id))
+   .returning();
+
+ return c.json(updatedGoose[0]);
+
+})
+
+/**
+ * Generate Goose Image
+ */
+app.post('/api/geese/:id/image', async (c) => {
+  const sql = neon(c.env.DATABASE_URL);
+  const db = drizzle(sql);
+
+  const id = c.req.param('id');
+  const goose = (await db.select().from(geese).where(eq(geese.id, +id)))?.[0];
+
+  if (!goose) {
+    return c.json({ message: 'Goose not found' }, 404);
+  }
+
+  const { name, description, programmingLanguage, motivations, location } = goose;
+
+  const openaiClient = new OpenAI({
+    apiKey: c.env.OPENAI_API_KEY,
+    fetch: globalThis.fetch,
+  });
+
+  const imageDescription = `A goose named ${name} who is a ${programmingLanguage} programmer. ${description}. ${motivations}. Located in ${location}.`;
+
+  const response = await openaiClient.images.generate({
+    prompt: imageDescription,
+    n: 1,
+    size: "1024x1024",
+  });
+
+
+  const imageUrl = response.data[0].url;
+
+  return c.json({ imageUrl });
+});
 
 export default app
 
